@@ -1,0 +1,93 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              xmlns:tools="http://schemas.android.com/tools"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
+              tools:context=".AudioPlayerActivity"
+              android:orientation="vertical"
+              android:layout_alignParentBottom="true"
+              android:layout_centerVertical="true"
+              android:gravity="center">
+
+
+        <RadioGroup
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/stationSelectionGroup"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentEnd="true"
+            android:measureWithLargestChild="false"
+            android:gravity="center"
+            android:weightSum="1"
+            android:layout_gravity="center_horizontal">
+
+            <RadioButton
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/fm91Point1"
+                android:checked="true"
+                android:id="@+id/radio91point1"
+                android:layout_above="@+id/radioJazz"
+                android:layout_alignLeft="@+id/radioJazz"
+                android:layout_alignStart="@+id/radioJazz"
+                />
+
+            <RadioButton
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/jazzText"
+                android:id="@+id/radioJazz"
+                android:layout_alignParentBottom="true"
+                android:layout_centerHorizontal="true"
+                android:checked="false"
+                android:layout_gravity="center_horizontal"/>
+
+            <RadioButton
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:text="@string/sports_radio_button"
+                android:id="@+id/sports_radio_button"
+                android:layout_above="@+id/radio91point1"
+                android:layout_alignLeft="@+id/radio91point1"
+                android:layout_alignStart="@+id/radio91point1"
+                android:checked="false"
+                android:layout_gravity="center_horizontal"
+                android:orientation="vertical"
+                />
+
+            <RadioButton
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Reading Service Radio"
+                android:id="@+id/reading_service_radio_button"
+                android:checked="false"
+                android:layout_gravity="center_horizontal"/>
+        </RadioGroup>
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/start_stop_layout"
+        android:layout_gravity="center_horizontal">
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/play_button_text"
+            android:id="@+id/play_button"
+            android:layout_gravity="bottom"/>
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/stop_button_text"
+            android:id="@+id/stop_button"
+            android:layout_gravity="bottom"
+            />
+    </LinearLayout>
+
+</LinearLayout>
+
+

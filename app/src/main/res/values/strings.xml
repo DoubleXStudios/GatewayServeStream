@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">M3uStreamTest2</string>
+
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
+    <string name="fm91Point1">91.1 FM</string>
+    <string name="jazzText">Jazz Radio</string>
+    <string name="communityText">Community Radio</string>
+    <string name="stop_button_text">Stop</string>
+    <string name="play_button_text">Play</string>
+    <string name="sports_radio_button">Sports Radio</string>
+</resources>
