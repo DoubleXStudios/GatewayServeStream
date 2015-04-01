@@ -1,9 +1,19 @@
 package com.example.quinn.m3ustreamtest2;
 
+import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+import android.os.AsyncTask;
+import android.util.Log;
+
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.URL;
+
 /**
  * Created by andrew on 1/27/2015.
 */
-/*
+
 public class ConnectionTest extends AsyncTask<String,String,String> {
     private Context ctx;
 
@@ -19,8 +29,7 @@ public class ConnectionTest extends AsyncTask<String,String,String> {
 
         String state = "";
         ConnectivityManager CManager =
-                (ConnectivityManager) AudioPlayerActivity
-                        .getInstance().getSystemService(Context.CONNECTIVITY_SERVICE);
+                (ConnectivityManager) ctx.getSystemService(ctx.CONNECTIVITY_SERVICE);
         NetworkInfo NInfo = CManager.getActiveNetworkInfo();
 
         if (NInfo != null && NInfo.isConnectedOrConnecting()) {
@@ -52,4 +61,3 @@ public class ConnectionTest extends AsyncTask<String,String,String> {
 
 
 }
-*/

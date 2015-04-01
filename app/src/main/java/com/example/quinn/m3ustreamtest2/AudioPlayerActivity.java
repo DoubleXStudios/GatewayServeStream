@@ -26,14 +26,16 @@ public class AudioPlayerActivity extends Activity {
     private boolean started;
     private String currentSource;
 
-    //public static Context getInstance() {}
-
 
 
     /** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        
+        ConnectionTest x = new ConnectionTest(this);
+        x.execute();
+        
         context = this;
         activity = this;
         started = false;
