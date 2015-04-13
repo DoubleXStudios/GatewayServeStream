@@ -9,4 +9,12 @@
     <string name="stop_button_text">Stop</string>
     <string name="play_button_text">Play</string>
     <string name="sports_radio_button">Sports Radio</string>
+    <string name="application_name">WGTD</string>
+    <string name="jazz_station_string">Jazz</string>
+    <string name="sports_station_string">Sports</string>
+    <string name="reading_service_string">Reading Service</string>
+    <string name="community_station_string">Community </string>
+    <string name="public_radio_string">Public</string>
+    <string name="blank_space_string">warning_text_view</string>
+    <string name="blank_place_holder"/>
 </resources>

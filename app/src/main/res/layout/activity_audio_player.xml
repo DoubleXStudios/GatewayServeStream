@@ -3,13 +3,24 @@
               android:layout_width="match_parent"
               android:layout_height="match_parent"
               tools:context=".AudioPlayerActivity"
+              android:background="@drawable/blue_gradient_background"
               android:orientation="vertical"
-              android:layout_alignParentBottom="true"
-              android:layout_centerVertical="true"
-              android:gravity="center">
+              android:weightSum="1">
 
 
-        <RadioGroup
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="Community Radio"
+        android:id="@+id/current_station_text_view"
+        android:layout_gravity="center_horizontal"
+        android:layout_weight="0.38"
+        android:paddingTop="40dp"
+        android:gravity="top|center"
+        android:textStyle="normal"/>
+
+    <!--<RadioGroup
             android:orientation="vertical"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -64,29 +75,96 @@
                 android:checked="false"
                 android:layout_gravity="center_horizontal"/>
         </RadioGroup>
-
+    -->
     <LinearLayout
         android:orientation="horizontal"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:id="@+id/start_stop_layout"
-        android:layout_gravity="center_horizontal">
+        android:layout_gravity="center|bottom"
+        android:padding="10dp"
+        android:gravity="center|bottom">
 
-        <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/play_button_text"
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="90dp"
+            android:layout_height="90dp"
+            android:layout_gravity="left"
+            android:gravity="center"
+            android:paddingRight="20dp">
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Jazz"
+                android:layout_gravity="center"/>
+
+            <ImageButton
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/back_black"
+                android:id="@+id/prev_button"/>
+        </LinearLayout>
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="90dp"
+            android:layout_height="90dp"
+            android:gravity="center|bottom"
+            android:paddingRight="20dp"
+            android:paddingLeft="20dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:layout_gravity="center"/>
+
+
+            <ImageButton
+            android:layout_width="90dp"
+            android:layout_height="90dp"
+            android:background="@drawable/play_red"
             android:id="@+id/play_button"
-            android:layout_gravity="bottom"/>
+            android:layout_gravity="bottom|center"/>
+            </LinearLayout>
 
-        <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/stop_button_text"
-            android:id="@+id/stop_button"
-            android:layout_gravity="bottom"
-            />
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="75dp"
+            android:layout_height="75dp"
+            android:paddingLeft="20dp"
+            android:gravity="bottom|right">
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Jazz"
+                android:layout_gravity="bottom|center"/>
+
+            <ImageButton
+
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+
+                android:background="@drawable/forward_black"
+                android:id="@+id/next_button"
+                />
+        </LinearLayout>
     </LinearLayout>
+<LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="100dp"
+    android:layout_gravity="bottom|center"
+    android:gravity="bottom|center">
+
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/ad_image_view"
+        android:layout_gravity="bottom|center"
+
+        android:src="@drawable/writers_guild"
+        android:contentDescription="A miscellaneous ad"/>
+    </LinearLayout>
+
+
 
 </LinearLayout>
 

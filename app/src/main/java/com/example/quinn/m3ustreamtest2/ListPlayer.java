@@ -25,7 +25,7 @@ public class ListPlayer implements Runnable {
     public ListPlayer(AudioPlayerActivity activity, String[] uris) {
         this.uris = uris;
         this.activity = activity;
-        activity.listPlayer = this;
+        activity.mListPlayer = this;
     }
 
     public void run() {
