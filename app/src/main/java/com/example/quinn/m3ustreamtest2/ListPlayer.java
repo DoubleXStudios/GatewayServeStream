@@ -46,6 +46,7 @@ public class ListPlayer implements Runnable {
     }
 
     private void play1(String uriStr) {
+        System.out.println("Made it to Run");
 
         try {
             // Try the URL directly (ok for Android 3.0 upwards)
@@ -97,6 +98,7 @@ public class ListPlayer implements Runnable {
     }
 
     public void stopPlaying() {
+        System.out.println("Player Stopper");
         keepPlaying = false;
         player.stop();
         //player.release();

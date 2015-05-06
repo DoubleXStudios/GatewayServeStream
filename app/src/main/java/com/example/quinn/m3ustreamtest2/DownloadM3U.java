@@ -26,6 +26,7 @@ public class DownloadM3U extends AsyncTask<String, Void, String[]> {
     }
 
     protected String[] doInBackground(String... urls) {
+        System.out.println("Made it to Download M3U");
         BufferedReader in = null;
         Vector<String> lines = new Vector<String>();
         try {

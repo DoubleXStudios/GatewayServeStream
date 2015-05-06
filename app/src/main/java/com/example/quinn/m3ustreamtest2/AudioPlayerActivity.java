@@ -8,6 +8,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.media.AudioManager;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -170,16 +171,18 @@ public class AudioPlayerActivity extends Activity {
     }
 
 
-    public static class WaveFragment extends Fragment {
+    public class WaveFragment extends Fragment {
 
         public float halfHeight;// = screenHeight/2.0f;
         public float width;// = screenWidth;
         public float height;
+        public AudioManager am;
 
         public WaveView line;
 
         public WaveFragment() {
         }
+
 
         @Override
         public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -189,6 +192,8 @@ public class AudioPlayerActivity extends Activity {
             height = container.getHeight();
             width = container.getWidth();
             line = new WaveView(getActivity());
+            final AudioManager am = (AudioManager) getSystemService(AUDIO_SERVICE);
+            int volume_level = am.getStreamVolume(AudioManager.STREAM_MUSIC);
 
             Timer timer = new Timer();
 
@@ -199,7 +204,9 @@ public class AudioPlayerActivity extends Activity {
                     getActivity().runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            line.updateWaveWithLevel(0.6f);
+                            //int volume_level=
+
+                            line.updateWaveWithLevel(0.05f * am.getStreamVolume(AudioManager.STREAM_MUSIC));
                         }
                     });
 
@@ -211,7 +218,7 @@ public class AudioPlayerActivity extends Activity {
             return line;
         }
 
-        public static class WaveView extends View {
+        public class WaveView extends View {
             private double phase;
             private double phaseShift;
             private double primaryWaveLength;
