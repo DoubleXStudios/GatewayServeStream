@@ -1,12 +1,13 @@
 package com.example.quinn.m3ustreamtest2;
 
+import android.app.ActionBar;
 import android.app.Fragment;
 import android.content.Context;
-import android.content.Intent;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.drawable.ColorDrawable;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
@@ -18,6 +19,7 @@ import android.view.MenuInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.github.gfranks.minimal.notification.GFMinimalNotification;
@@ -44,10 +46,11 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
     private ImageButton mPrevButton;
     private ImageButton mNextButton;
 
-    private TextView currentStationTextView;
+    private ImageView currentStationBanner;
     private TextView nextStationTextView;
     private TextView previousStationTextView;
     private GFMinimalNotification notification;
+    private boolean doneBuffering;
 
     private MediaRecorder mRecorder;
 
@@ -73,6 +76,11 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        ActionBar actionBar;
+
+        actionBar = getActionBar();
+        ColorDrawable colorDrawable = new ColorDrawable(Color.parseColor("#282828"));
+        actionBar.setBackgroundDrawable(colorDrawable);
 
         mRecorder = new MediaRecorder();
         mRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
@@ -90,6 +98,7 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
         mContext = this;
         mActivity = this;
         mPlaying = false;
+        doneBuffering = false;
 
         player = new MediaPlayer();
 
@@ -109,13 +118,31 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
                 }
                 notification = new GFMinimalNotification(mActivity, GFMinimalNotificationStyle.SUCCESS , "", "Your stream is now playing!");
                 notification.show(mActivity);
+                doneBuffering = true;
+
                 player.start();
+            }
+        });
+
+        player.setOnErrorListener(new MediaPlayer.OnErrorListener() {
+
+            @Override
+            public boolean onError(MediaPlayer mediaPlayer, int i, int i1) {
+                if(notification != null)
+                {
+                    notification.dismiss();
+                }
+                notification = new GFMinimalNotification(mActivity, GFMinimalNotificationStyle.SUCCESS , "", "There was an error!");
+                notification.show(mActivity);
+                player.start();
+
+                return false;
             }
         });
 
         setContentView(R.layout.main_act_layout);
 
-        currentStationTextView = (TextView) findViewById(R.id.current_station_banner);
+        currentStationBanner = (ImageView)findViewById(R.id.current_station_banner);
         nextStationTextView = (TextView) findViewById(R.id.next_station_text_view);
         previousStationTextView = (TextView) findViewById(R.id.prev_station_text_view);
 
@@ -126,6 +153,7 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
                 if(mPlaying) {
                     player.stop();
                     mStartStopButton.setBackgroundResource(R.drawable.play_red);
+                    doneBuffering = false;
                 } else {
                     player.prepareAsync();
                     mStartStopButton.setBackgroundResource(R.drawable.pause_red);
@@ -174,13 +202,8 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
 
     private void updateTextViews(){
         previousStationTextView.setText(getString(mStations[((mCurrentIndex-1) + mStations.length)% mStations.length].getResourceID()));
-        currentStationTextView.setText(getString(mStations[mCurrentIndex].getResourceID()));
+        //currentStationBanner.setText(getString(mStations[mCurrentIndex].getResourceID()));
         nextStationTextView.setText(getString(mStations[(mCurrentIndex + 1) % mStations.length].getResourceID()));
-    }
-
-    protected void onActivityResult (int requestCode, int resultCode, Intent data) {
-        System.out.println("External Player finished");
-
     }
 
     public Context getContext(){
@@ -224,7 +247,13 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
                             double level = (float)(20 * Math.log10(mRecorder.getMaxAmplitude()/700.0)) ;
 
                             Log.d("Level", String.format("%f", level));
-                            line.updateWaveWithLevel(0.7);
+                            if(doneBuffering)
+                            {
+                                line.updateWaveWithLevel(0.7);
+                            } else
+                            {
+                                line.updateWaveWithLevel(0.01);
+                            }
                         }
                     });
                 }
@@ -271,9 +300,9 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
 
                 Paint paint = new Paint();
 
-                paint.setColor(Color.RED);
+                paint.setColor(Color.parseColor("#902E41"));
 
-                paint.setStrokeWidth(3);
+                paint.setStrokeWidth(5);
 
                 paint.setStyle(Paint.Style.STROKE);
 

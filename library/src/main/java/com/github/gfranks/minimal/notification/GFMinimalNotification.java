@@ -41,7 +41,7 @@ public class GFMinimalNotification implements View.OnClickListener {
     protected static final int LEFT_RIGHT_VIEW_WEIGHT = 1;
     protected static final long DEFAULT_ANIMATION_DURATION = 250;
     protected long mAnimationDuration = DEFAULT_ANIMATION_DURATION;
-    protected View mNotificationView;
+    public View mNotificationView;
     protected LinearLayout mNotificationTextContainer;
     protected TextView mTitleView;
     protected TextView mSubtitleView;
