@@ -1,6 +1,5 @@
 package com.example.quinn.m3ustreamtest2;
 
-import android.app.Activity;
 import android.app.Fragment;
 import android.content.Context;
 import android.content.Intent;
@@ -9,7 +8,10 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.media.AudioManager;
+import android.media.MediaPlayer;
+import android.media.MediaRecorder;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -18,6 +20,11 @@ import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.TextView;
 
+import com.github.gfranks.minimal.notification.GFMinimalNotification;
+import com.github.gfranks.minimal.notification.GFMinimalNotificationStyle;
+import com.github.gfranks.minimal.notification.activity.BaseNotificationActivity;
+
+import java.io.IOException;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -28,11 +35,11 @@ import java.util.TimerTask;
  * http://199.255.3.11:88/broadwave.m3u?src=4&rate=1    Reading Service
  * http://media.gtc.edu:8000/stream.m3u     Public Radio HD1
  */
-public class AudioPlayerActivity extends Activity {
+public class AudioPlayerActivity extends BaseNotificationActivity {
     public static Context mContext;
     public static AudioPlayerActivity mActivity;
 
-    public ListPlayer mListPlayer;
+    public MediaPlayer player;
     private ImageButton mStartStopButton;
     private ImageButton mPrevButton;
     private ImageButton mNextButton;
@@ -40,7 +47,9 @@ public class AudioPlayerActivity extends Activity {
     private TextView currentStationTextView;
     private TextView nextStationTextView;
     private TextView previousStationTextView;
+    private GFMinimalNotification notification;
 
+    private MediaRecorder mRecorder;
 
     private StationSource []  mStations = {new StationSource("Public", R.string.public_radio_string, "http://media.gtc.edu:8000/stream.m3u"), //Public Radio
             new StationSource("Jazz",R.string.jazz_station_string, "http://199.255.3.11:88/broadwave.m3u?src=1&rate=1"),//Jazz
@@ -64,12 +73,45 @@ public class AudioPlayerActivity extends Activity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        mRecorder = new MediaRecorder();
+        mRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+        mRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
+        mRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
+        mRecorder.setOutputFile("/dev/null");
+        try {
+            mRecorder.prepare();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        mRecorder.start();
+
         mCurrentIndex = 0;
-        //ConnectionTest x = new ConnectionTest(this);
-        //x.execute();
         mContext = this;
         mActivity = this;
         mPlaying = false;
+
+        player = new MediaPlayer();
+
+        try
+        {
+            player.setDataSource("http://media.gtc.edu:8000/stream\n");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        player.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
+            @Override
+            public void onPrepared(MediaPlayer mediaPlayer) {
+                if(notification != null)
+                {
+                    notification.dismiss();
+                }
+                notification = new GFMinimalNotification(mActivity, GFMinimalNotificationStyle.SUCCESS , "", "Your stream is now playing!");
+                notification.show(mActivity);
+                player.start();
+            }
+        });
 
         setContentView(R.layout.main_act_layout);
 
@@ -82,11 +124,19 @@ public class AudioPlayerActivity extends Activity {
             @Override
             public void onClick(View view){
                 if(mPlaying) {
-                    setPlayer(false);
+                    player.stop();
                     mStartStopButton.setBackgroundResource(R.drawable.play_red);
                 } else {
-                    setPlayer(true);
+                    player.prepareAsync();
                     mStartStopButton.setBackgroundResource(R.drawable.pause_red);
+
+                    if(notification != null)
+                    {
+                        notification.dismiss();
+                    }
+                    notification = new GFMinimalNotification(mActivity, GFMinimalNotificationStyle.WARNING , "", "Your stream is loading....",
+                            0);
+                    notification.show(mActivity);
                 }
                 mPlaying = ! mPlaying;
                 //mCurrentIndex = mCurrentIndex+1% mStations.length;
@@ -100,7 +150,7 @@ public class AudioPlayerActivity extends Activity {
 
                 mCurrentIndex = (mCurrentIndex+1)% mStations.length;
                 updateTextViews();
-                setPlayer(true);
+                player.prepareAsync();
 
             }
         });
@@ -112,9 +162,7 @@ public class AudioPlayerActivity extends Activity {
 
                 mCurrentIndex = ((mCurrentIndex-1) + mStations.length)% mStations.length;
                 updateTextViews();
-                setPlayer(true);
-
-
+                player.prepareAsync();
             }
         });
 
@@ -127,49 +175,17 @@ public class AudioPlayerActivity extends Activity {
     private void updateTextViews(){
         previousStationTextView.setText(getString(mStations[((mCurrentIndex-1) + mStations.length)% mStations.length].getResourceID()));
         currentStationTextView.setText(getString(mStations[mCurrentIndex].getResourceID()));
-        nextStationTextView.setText(getString(mStations[(mCurrentIndex+1)% mStations.length].getResourceID()));
-    }
-
-
-    private void setPlayer(boolean needToStart){
-        if (needToStart) {
-                if(mPlaying){
-                    mListPlayer.stopPlaying();
-                }
-            startPlayer(mStations[mCurrentIndex].getSource());
-
-        } else {
-
-            mListPlayer.stopPlaying();
-
-        }
-    }
-
-    private void startPlayer(String source){
-        Intent intent = getIntent();
-        // Are we called from main or by our M3U intent?
-        if (intent.getAction().equals(Intent.ACTION_MAIN)) {
-            System.out.println("Is main");
-            new DownloadM3U(this).execute(source);
-            //"http://199.255.3.11:88/broadwave.m3u?src=2&rate=1"
-            //http://199.255.3.11:88/broadwave.m3u?src=2&rate=1
-        } else
-        if (intent != null && intent.getData() != null) {
-            new DownloadM3U(this).execute(intent.getData().toString());
-        }
+        nextStationTextView.setText(getString(mStations[(mCurrentIndex + 1) % mStations.length].getResourceID()));
     }
 
     protected void onActivityResult (int requestCode, int resultCode, Intent data) {
         System.out.println("External Player finished");
-        synchronized(mListPlayer) {
-            mListPlayer.notifyAll();
-        }
+
     }
 
     public Context getContext(){
         return this.getBaseContext();
     }
-
 
     public class WaveFragment extends Fragment {
 
@@ -205,15 +221,16 @@ public class AudioPlayerActivity extends Activity {
                         @Override
                         public void run() {
                             //int volume_level=
+                            double level = (float)(20 * Math.log10(mRecorder.getMaxAmplitude()/700.0)) ;
 
-                            line.updateWaveWithLevel(0.05f * am.getStreamVolume(AudioManager.STREAM_MUSIC));
+                            Log.d("Level", String.format("%f", level));
+                            line.updateWaveWithLevel(0.7);
                         }
                     });
-
                 }
             };
 
-            timer.scheduleAtFixedRate(task, 0, 15);
+            timer.scheduleAtFixedRate(task, 0, 10);
 
             return line;
         }
@@ -234,18 +251,17 @@ public class AudioPlayerActivity extends Activity {
                 this.phaseShift = -0.15;
                 primaryWaveLength = 3.0f;
                 secondaryWaveLength = 1.0f;
-                numberOfWaves = 5;
+                numberOfWaves = 1;
                 amplitude = 1.0;
                 idleAmplitude = 0.01;
             }
 
-            public void updateWaveWithLevel(float level) {
+            public void updateWaveWithLevel(double level) {
                 phase += phaseShift;
                 amplitude = Math.max(level, idleAmplitude);
 
                 invalidate();
             }
-
 
             @Override
 

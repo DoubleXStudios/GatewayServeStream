@@ -17,4 +17,6 @@
     <string name="public_radio_string">Public</string>
     <string name="blank_space_string">warning_text_view</string>
     <string name="blank_place_holder"/>
+
+    <string name="undo">Undo</string>
 </resources>
