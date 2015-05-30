@@ -7,8 +7,8 @@
     <ImageView
         android:layout_width="match_parent"
         android:layout_height="200dp"
-        android:src="@drawable/classical"
         android:id="@+id/current_station_banner"
+        android:src="@drawable/classical"
         android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true"
         android:padding="10dp"
@@ -59,7 +59,7 @@
                 android:layout_height="wrap_content"
                 android:text="@string/sports_station_string"
                 android:id="@+id/prev_station_text_view"
-                android:textSize="18sp"
+                android:textSize="18dp"
                 android:textColor="#000000"
                 android:textStyle="bold"
                 />
@@ -109,7 +109,7 @@
                 android:layout_height="wrap_content"
                 android:text="@string/jazz_station_string"
                 android:id="@+id/next_station_text_view"
-                android:textSize="18sp"
+                android:textSize="18dp"
                 android:textColor="#000000"
                 android:textStyle="bold"
                 />

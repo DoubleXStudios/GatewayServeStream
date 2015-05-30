@@ -44,7 +44,7 @@
             android:marqueeRepeatLimit="marquee_forever"
             android:scrollHorizontally="true"
             android:singleLine="true"
-            android:textSize="22sp" />
+            android:textSize="22dp" />
 
     </LinearLayout>
 

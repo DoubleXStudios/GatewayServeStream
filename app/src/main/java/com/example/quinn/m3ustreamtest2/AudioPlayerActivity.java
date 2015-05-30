@@ -11,6 +11,9 @@ import android.graphics.drawable.ColorDrawable;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -21,6 +24,7 @@ import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.github.gfranks.minimal.notification.GFMinimalNotification;
 import com.github.gfranks.minimal.notification.GFMinimalNotificationStyle;
@@ -54,15 +58,16 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
 
     private MediaRecorder mRecorder;
 
-    private StationSource []  mStations = {new StationSource("Public", R.string.public_radio_string, "http://media.gtc.edu:8000/stream.m3u"), //Public Radio
-            new StationSource("Jazz",R.string.jazz_station_string, "http://199.255.3.11:88/broadwave.m3u?src=1&rate=1"),//Jazz
-            new StationSource("Reading",R.string.reading_service_string, "http://199.255.3.11:88/broadwave.m3u?src=4&rate=1" ), //Reading Service
-            new StationSource("Sports", R.string.sports_station_string, "http://sportsweb.gtc.edu:8000/Sportsweb.m3u"), //Sports
-            new StationSource("Community",R.string.community_station_string, "http://199.255.3.11:88/broadwave.m3u?src=2&rate=1")}; //Community Radio
+    private StationSource []  mStations = {new StationSource("Public", R.string.public_radio_string, "http://media.gtc.edu:8000/stream\n"), //Public Radio
+            new StationSource("Jazz",R.string.jazz_station_string, "http://199.255.3.11:88/broadwave.mp3?src=1&rate=1&ref=http%3A%2F%2Fwww.wgtd.org%2Fhd2.asp"),//Jazz
+            new StationSource("Reading",R.string.reading_service_string, "http://199.255.3.11:88/broadwave.mp3?src=4&rate=1&ref=http%3A%2F%2Fwww.wgtd.org%2Freading.asp" ), //Reading Service
+            new StationSource("Sports", R.string.sports_station_string, "http://sportsweb.gtc.edu:8000/Sportsweb")}; //Sports
 
+    private int[] bannerImages = {R.drawable.classical, R.drawable.jazz, R.drawable.reading, R.drawable.sports};
     private int mCurrentIndex;
 
     private boolean mPlaying;
+    private boolean preparing;
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -100,45 +105,7 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
         mPlaying = false;
         doneBuffering = false;
 
-        player = new MediaPlayer();
-
-        try
-        {
-            player.setDataSource("http://media.gtc.edu:8000/stream\n");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        player.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
-            @Override
-            public void onPrepared(MediaPlayer mediaPlayer) {
-                if(notification != null)
-                {
-                    notification.dismiss();
-                }
-                notification = new GFMinimalNotification(mActivity, GFMinimalNotificationStyle.SUCCESS , "", "Your stream is now playing!");
-                notification.show(mActivity);
-                doneBuffering = true;
-
-                player.start();
-            }
-        });
-
-        player.setOnErrorListener(new MediaPlayer.OnErrorListener() {
-
-            @Override
-            public boolean onError(MediaPlayer mediaPlayer, int i, int i1) {
-                if(notification != null)
-                {
-                    notification.dismiss();
-                }
-                notification = new GFMinimalNotification(mActivity, GFMinimalNotificationStyle.SUCCESS , "", "There was an error!");
-                notification.show(mActivity);
-                player.start();
-
-                return false;
-            }
-        });
+        setupPlayer();
 
         setContentView(R.layout.main_act_layout);
 
@@ -154,8 +121,15 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
                     player.stop();
                     mStartStopButton.setBackgroundResource(R.drawable.play_red);
                     doneBuffering = false;
+
+                    if(notification != null)
+                    {
+                        notification.dismiss();
+                    }
                 } else {
-                    player.prepareAsync();
+
+                    new CheckInternetTask().execute();
+
                     mStartStopButton.setBackgroundResource(R.drawable.pause_red);
 
                     if(notification != null)
@@ -175,11 +149,16 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
         mNextButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
                 mCurrentIndex = (mCurrentIndex+1)% mStations.length;
                 updateTextViews();
-                player.prepareAsync();
+                mStartStopButton.setBackgroundResource(R.drawable.play_red);
 
+                mPlaying = false;
+                doneBuffering = false;
+
+                player.stop();
+
+                setupPlayer();
             }
         });
 
@@ -188,9 +167,16 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
             @Override
             public void onClick(View v) {
 
-                mCurrentIndex = ((mCurrentIndex-1) + mStations.length)% mStations.length;
+                mCurrentIndex = ((mCurrentIndex - 1) + mStations.length) % mStations.length;
                 updateTextViews();
-                player.prepareAsync();
+                mStartStopButton.setBackgroundResource(R.drawable.play_red);
+
+                mPlaying = false;
+                doneBuffering = false;
+
+                player.stop();
+
+                setupPlayer();
             }
         });
 
@@ -202,9 +188,55 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
 
     private void updateTextViews(){
         previousStationTextView.setText(getString(mStations[((mCurrentIndex-1) + mStations.length)% mStations.length].getResourceID()));
-        //currentStationBanner.setText(getString(mStations[mCurrentIndex].getResourceID()));
+        currentStationBanner.setImageResource(bannerImages[mCurrentIndex]);
         nextStationTextView.setText(getString(mStations[(mCurrentIndex + 1) % mStations.length].getResourceID()));
     }
+
+    private void setupPlayer()
+    {
+        player = new MediaPlayer();
+        try
+        {
+            player.setDataSource(mStations[mCurrentIndex].getSource());
+        } catch (Exception e) {
+            Toast.makeText(getApplicationContext(), String.format("%s", mStations[mCurrentIndex].getSource()), Toast.LENGTH_SHORT).show();
+            e.printStackTrace();
+        }
+
+        player.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
+            @Override
+            public void onPrepared(MediaPlayer mediaPlayer) {
+                if (notification != null) {
+                    notification.dismiss();
+                }
+
+                if(mPlaying)
+                {
+                    notification = new GFMinimalNotification(mActivity, GFMinimalNotificationStyle.SUCCESS, "", "Your station is playing!");
+                    notification.show(mActivity);
+
+                    player.start();
+                    doneBuffering = true;
+                }
+            }
+        });
+
+        player.setOnErrorListener(new MediaPlayer.OnErrorListener() {
+
+            @Override
+            public boolean onError(MediaPlayer mediaPlayer, int i, int i1) {
+                if (notification != null) {
+                    notification.dismiss();
+                }
+                notification = new GFMinimalNotification(mActivity, GFMinimalNotificationStyle.ERROR, "", "There was an error!");
+                notification.show(mActivity);
+
+                return false;
+            }
+        });
+
+    }
+
 
     public Context getContext(){
         return this.getBaseContext();
@@ -226,7 +258,6 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
         @Override
         public View onCreateView(LayoutInflater inflater, ViewGroup container,
                                  Bundle savedInstanceState) {
-            //View rootView = inflater.inflate(R.layout.fragment_main, container, false);
             halfHeight = container.getHeight() / 2;
             height = container.getHeight();
             width = container.getWidth();
@@ -347,6 +378,33 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
                 }
 
 
+            }
+        }
+    }
+
+    private class CheckInternetTask extends AsyncTask<Void, Void, Boolean>
+    {
+
+        @Override
+        protected Boolean doInBackground(Void... voids)
+        {
+            ConnectivityManager cm =
+                    (ConnectivityManager)getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
+
+            NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+            boolean isConnected = activeNetwork != null &&
+                    activeNetwork.isConnectedOrConnecting();
+
+            return isConnected;
+        }
+
+        protected void onPostExecute(Boolean result) {
+            if(!result)
+            {
+                Toast.makeText(getContext(), "You have no internet connection!", Toast.LENGTH_LONG).show();
+            } else
+            {
+                player.prepareAsync();
             }
         }
     }

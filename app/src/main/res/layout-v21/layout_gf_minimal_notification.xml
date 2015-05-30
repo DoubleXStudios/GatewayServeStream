@@ -50,7 +50,7 @@
             android:singleLine="true"
             android:lines="3"
             android:maxLines="3"
-            android:textSize="22sp" />
+            android:textSize="22dp" />
 
     </LinearLayout>
 
