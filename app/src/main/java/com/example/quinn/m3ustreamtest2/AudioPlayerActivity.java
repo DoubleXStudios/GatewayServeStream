@@ -127,7 +127,7 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
                         notification.dismiss();
                     }
                 } else {
-
+                    setupPlayer();
                     new CheckInternetTask().execute();
 
                     mStartStopButton.setBackgroundResource(R.drawable.pause_red);
@@ -225,11 +225,18 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
 
             @Override
             public boolean onError(MediaPlayer mediaPlayer, int i, int i1) {
-                if (notification != null) {
-                    notification.dismiss();
+                if(mPlaying)
+                {
+                    if (notification != null) {
+                        notification.dismiss();
+                    }
+                    notification = new GFMinimalNotification(mActivity, GFMinimalNotificationStyle.ERROR, "", "There was an error!");
+                    notification.show(mActivity);
+
+                    mStartStopButton.setBackgroundResource(R.drawable.play_red);
+                    doneBuffering = false;
+                    mPlaying = false;
                 }
-                notification = new GFMinimalNotification(mActivity, GFMinimalNotificationStyle.ERROR, "", "There was an error!");
-                notification.show(mActivity);
 
                 return false;
             }
