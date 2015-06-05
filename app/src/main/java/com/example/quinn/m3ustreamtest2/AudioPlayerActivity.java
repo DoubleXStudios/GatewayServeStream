@@ -11,6 +11,7 @@ import android.graphics.drawable.ColorDrawable;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
+import android.media.audiofx.Visualizer;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
@@ -56,6 +57,9 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
     private GFMinimalNotification notification;
     private boolean doneBuffering;
 
+    private Visualizer audioOutput = null;
+    public float intensity = 0;
+
     private MediaRecorder mRecorder;
 
     private StationSource []  mStations = {new StationSource("Public", R.string.public_radio_string, "http://media.gtc.edu:8000/stream\n"), //Public Radio
@@ -66,7 +70,7 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
     private int[] bannerImages = {R.drawable.classical, R.drawable.jazz, R.drawable.reading, R.drawable.sports};
     private int mCurrentIndex;
 
-    private boolean mPlaying;
+    private boolean playPressed;
     private boolean preparing;
 
     @Override
@@ -83,6 +87,8 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
         super.onCreate(savedInstanceState);
         ActionBar actionBar;
 
+        createVisualizer();
+
         actionBar = getActionBar();
         ColorDrawable colorDrawable = new ColorDrawable(Color.parseColor("#282828"));
         actionBar.setBackgroundDrawable(colorDrawable);
@@ -92,17 +98,19 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
         mRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
         mRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
         mRecorder.setOutputFile("/dev/null");
+        
         try {
             mRecorder.prepare();
         } catch (IOException e) {
             e.printStackTrace();
         }
+        
         mRecorder.start();
 
         mCurrentIndex = 0;
         mContext = this;
         mActivity = this;
-        mPlaying = false;
+        playPressed = false;
         doneBuffering = false;
 
         setupPlayer();
@@ -117,7 +125,7 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
         mStartStopButton.setOnClickListener(new View.OnClickListener(){
             @Override
             public void onClick(View view){
-                if(mPlaying) {
+                if(playPressed) {
                     player.stop();
                     mStartStopButton.setBackgroundResource(R.drawable.play_red);
                     doneBuffering = false;
@@ -140,7 +148,7 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
                             0);
                     notification.show(mActivity);
                 }
-                mPlaying = ! mPlaying;
+                playPressed = ! playPressed;
                 //mCurrentIndex = mCurrentIndex+1% mStations.length;
             }
         });
@@ -153,7 +161,7 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
                 updateTextViews();
                 mStartStopButton.setBackgroundResource(R.drawable.play_red);
 
-                mPlaying = false;
+                playPressed = false;
                 doneBuffering = false;
 
                 player.stop();
@@ -171,7 +179,7 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
                 updateTextViews();
                 mStartStopButton.setBackgroundResource(R.drawable.play_red);
 
-                mPlaying = false;
+                playPressed = false;
                 doneBuffering = false;
 
                 player.stop();
@@ -210,8 +218,7 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
                     notification.dismiss();
                 }
 
-                if(mPlaying)
-                {
+                if (playPressed) {
                     notification = new GFMinimalNotification(mActivity, GFMinimalNotificationStyle.SUCCESS, "", "Your station is playing!");
                     notification.show(mActivity);
 
@@ -225,8 +232,7 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
 
             @Override
             public boolean onError(MediaPlayer mediaPlayer, int i, int i1) {
-                if(mPlaying)
-                {
+                if (playPressed) {
                     if (notification != null) {
                         notification.dismiss();
                     }
@@ -235,13 +241,36 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
 
                     mStartStopButton.setBackgroundResource(R.drawable.play_red);
                     doneBuffering = false;
-                    mPlaying = false;
+                    playPressed = false;
+                }
+
+                for (int k = 0; i < 10; i++) {
+                    Toast.makeText(getApplicationContext(), String.format("Error Code: %d", i), Toast.LENGTH_LONG).show();
                 }
 
                 return false;
             }
         });
 
+    }
+
+    private void createVisualizer(){
+        int rate = Visualizer.getMaxCaptureRate();
+        audioOutput = new Visualizer(0); // get output audio stream
+        audioOutput.setDataCaptureListener(new Visualizer.OnDataCaptureListener() {
+            @Override
+            public void onWaveFormDataCapture(Visualizer visualizer, byte[] waveform, int samplingRate) {
+                intensity = ((float) waveform[0] + 128f) / 256;
+                Log.d("vis", String.valueOf(intensity));
+            }
+
+            @Override
+            public void onFftDataCapture(Visualizer visualizer, byte[] fft, int samplingRate) {
+
+            }
+        },rate , true, false); // waveform not freq data
+        Log.d("rate", String.valueOf(Visualizer.getMaxCaptureRate()));
+        audioOutput.setEnabled(true);
     }
 
 
@@ -284,10 +313,23 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
                             //int volume_level=
                             double level = (float)(20 * Math.log10(mRecorder.getMaxAmplitude()/700.0)) ;
 
-                            Log.d("Level", String.format("%f", level));
                             if(doneBuffering)
                             {
-                                line.updateWaveWithLevel(0.7);
+                                if(intensity == 0.103975)
+                                {
+                                    
+                                }
+
+                                if(intensity < 0.001)
+                                {
+                                    line.updateWaveWithLevel(0.1);
+                                } else if(intensity < 0.5)
+                                {
+                                    line.updateWaveWithLevel(0.5);
+                                } else
+                                {
+                                    line.updateWaveWithLevel(0.8);
+                                }
                             } else
                             {
                                 line.updateWaveWithLevel(0.01);
@@ -340,7 +382,7 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
 
                 paint.setColor(Color.parseColor("#902E41"));
 
-                paint.setStrokeWidth(5);
+                paint.setStrokeWidth(6);
 
                 paint.setStyle(Paint.Style.STROKE);
 
