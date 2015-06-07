@@ -72,6 +72,8 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
 
     private boolean playPressed;
     private boolean preparing;
+    private Timer timer;
+    private TimerTask task;
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -79,6 +81,25 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.menu_audio_player, menu);
         return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        timer.cancel();
+        timer = null;
+        player.stop();
+        System.exit(0);
+    }
+
+    @Override
+    public void onResume()
+    {
+        super.onResume();
+        if(timer == null)
+        {
+            timer.scheduleAtFixedRate(task, 0, 10);
+        }
     }
 
     /** Called when the activity is first created. */
@@ -98,13 +119,13 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
         mRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
         mRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
         mRecorder.setOutputFile("/dev/null");
-        
+
         try {
             mRecorder.prepare();
         } catch (IOException e) {
             e.printStackTrace();
         }
-        
+
         mRecorder.start();
 
         mCurrentIndex = 0;
@@ -126,7 +147,12 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
             @Override
             public void onClick(View view){
                 if(playPressed) {
-                    player.stop();
+
+                    if(player.isPlaying())
+                    {
+                        player.stop();
+                    }
+
                     mStartStopButton.setBackgroundResource(R.drawable.play_red);
                     doneBuffering = false;
 
@@ -164,7 +190,10 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
                 playPressed = false;
                 doneBuffering = false;
 
-                player.stop();
+                if(player.isPlaying())
+                {
+                    player.stop();
+                }
 
                 setupPlayer();
             }
@@ -182,7 +211,10 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
                 playPressed = false;
                 doneBuffering = false;
 
-                player.stop();
+                if(player.isPlaying())
+                {
+                    player.stop();
+                }
 
                 setupPlayer();
             }
@@ -273,7 +305,6 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
         audioOutput.setEnabled(true);
     }
 
-
     public Context getContext(){
         return this.getBaseContext();
     }
@@ -301,9 +332,9 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
             final AudioManager am = (AudioManager) getSystemService(AUDIO_SERVICE);
             int volume_level = am.getStreamVolume(AudioManager.STREAM_MUSIC);
 
-            Timer timer = new Timer();
+            timer = new Timer();
 
-            TimerTask task = new TimerTask() {
+            task = new TimerTask() {
 
                 synchronized public void run() {
 
@@ -317,7 +348,7 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
                             {
                                 if(intensity == 0.103975)
                                 {
-                                    
+
                                 }
 
                                 if(intensity < 0.001)
@@ -425,8 +456,6 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
 
                     canvas.drawPath(path, paint);
                 }
-
-
             }
         }
     }
