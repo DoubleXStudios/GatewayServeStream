@@ -30,6 +30,8 @@ import android.widget.Toast;
 import com.github.gfranks.minimal.notification.GFMinimalNotification;
 import com.github.gfranks.minimal.notification.GFMinimalNotificationStyle;
 import com.github.gfranks.minimal.notification.activity.BaseNotificationActivity;
+import com.google.android.gms.analytics.GoogleAnalytics;
+import com.google.android.gms.analytics.Tracker;
 
 import java.io.IOException;
 import java.util.Timer;
@@ -75,6 +77,9 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
     private Timer timer;
     private TimerTask task;
 
+    public static GoogleAnalytics analytics;
+    public static Tracker tracker;
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu items for use in the action bar
@@ -106,6 +111,15 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        analytics = GoogleAnalytics.getInstance(this);
+        analytics.setLocalDispatchPeriod(1800);
+
+        tracker = analytics.newTracker("UA-63784829-1"); // Replace with actual tracker/property Id
+        tracker.enableExceptionReporting(true);
+        tracker.enableAdvertisingIdCollection(true);
+        tracker.enableAutoActivityTracking(true);
+
         ActionBar actionBar;
 
         createVisualizer();
