@@ -34,6 +34,8 @@ import com.google.android.gms.analytics.GoogleAnalytics;
 import com.google.android.gms.analytics.Tracker;
 
 import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -44,20 +46,20 @@ import java.util.TimerTask;
  * http://199.255.3.11:88/broadwave.m3u?src=4&rate=1    Reading Service
  * http://media.gtc.edu:8000/stream.m3u     Public Radio HD1
  */
-public class AudioPlayerActivity extends BaseNotificationActivity {
+public class AudioPlayerActivity extends BaseNotificationActivity implements MediaPlayer.OnErrorListener {
     public static Context mContext;
     public static AudioPlayerActivity mActivity;
 
     public MediaPlayer player;
-    private ImageButton mStartStopButton;
+    public ImageButton mStartStopButton;
     private ImageButton mPrevButton;
     private ImageButton mNextButton;
 
     private ImageView currentStationBanner;
     private TextView nextStationTextView;
     private TextView previousStationTextView;
-    private GFMinimalNotification notification;
-    private boolean doneBuffering;
+    public GFMinimalNotification notification;
+    public boolean doneBuffering;
 
     private Visualizer audioOutput = null;
     public float intensity = 0;
@@ -72,10 +74,13 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
     private int[] bannerImages = {R.drawable.classical, R.drawable.jazz, R.drawable.reading, R.drawable.sports};
     private int mCurrentIndex;
 
-    private boolean playPressed;
+    public boolean playPressed;
     private boolean preparing;
     private Timer timer;
     private TimerTask task;
+
+    private Timer checkInternetTimer;
+    private TimerTask checkInternetTask;
 
     public static GoogleAnalytics analytics;
     public static Tracker tracker;
@@ -107,11 +112,8 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
         }
     }
 
-    /** Called when the activity is first created. */
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-
+    public void setupGoogleAnalytics()
+    {
         analytics = GoogleAnalytics.getInstance(this);
         analytics.setLocalDispatchPeriod(1800);
 
@@ -119,15 +121,34 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
         tracker.enableExceptionReporting(true);
         tracker.enableAdvertisingIdCollection(true);
         tracker.enableAutoActivityTracking(true);
+    }
 
-        ActionBar actionBar;
+    public void setupInternetCheckTimer()
+    {
+        checkInternetTimer = new Timer();
 
-        createVisualizer();
+        checkInternetTask = new TimerTask() {
 
-        actionBar = getActionBar();
-        ColorDrawable colorDrawable = new ColorDrawable(Color.parseColor("#282828"));
-        actionBar.setBackgroundDrawable(colorDrawable);
+            synchronized public void run() {
 
+                mActivity.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                       if(mActivity.playPressed)
+                       {
+                           new ConnectionTest(getApplicationContext(), mActivity, false).execute();
+                       }
+                    }
+                });
+            }
+        };
+
+        checkInternetTimer.scheduleAtFixedRate(checkInternetTask, 0, 5000);
+    }
+
+
+    public void setupRecorder() // Recorder used by visualizer
+    {
         mRecorder = new MediaRecorder();
         mRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
         mRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
@@ -141,6 +162,25 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
         }
 
         mRecorder.start();
+    }
+
+
+    /** Called when the activity is first created. */
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        setupGoogleAnalytics();
+
+        // Sets up the navigation bar
+        ActionBar actionBar;
+
+        actionBar = getActionBar();
+        ColorDrawable colorDrawable = new ColorDrawable(Color.parseColor("#282828"));
+        actionBar.setBackgroundDrawable(colorDrawable);
+
+        setupRecorder();
+        createVisualizer();
 
         mCurrentIndex = 0;
         mContext = this;
@@ -176,7 +216,7 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
                     }
                 } else {
                     setupPlayer();
-                    new CheckInternetTask().execute();
+                    new ConnectionTest(getApplicationContext(), mActivity, true).execute();
 
                     mStartStopButton.setBackgroundResource(R.drawable.pause_red);
 
@@ -189,7 +229,6 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
                     notification.show(mActivity);
                 }
                 playPressed = ! playPressed;
-                //mCurrentIndex = mCurrentIndex+1% mStations.length;
             }
         });
 
@@ -238,6 +277,8 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
                 .add(R.id.wave_container, new WaveFragment())
                 .commit();
 
+        setupInternetCheckTimer();
+
     }
 
     private void updateTextViews(){
@@ -274,30 +315,23 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
             }
         });
 
-        player.setOnErrorListener(new MediaPlayer.OnErrorListener() {
+    }
 
-            @Override
-            public boolean onError(MediaPlayer mediaPlayer, int i, int i1) {
-                if (playPressed) {
-                    if (notification != null) {
-                        notification.dismiss();
-                    }
-                    notification = new GFMinimalNotification(mActivity, GFMinimalNotificationStyle.ERROR, "", "There was an error!");
-                    notification.show(mActivity);
-
-                    mStartStopButton.setBackgroundResource(R.drawable.play_red);
-                    doneBuffering = false;
-                    playPressed = false;
-                }
-
-                for (int k = 0; i < 10; i++) {
-                    Toast.makeText(getApplicationContext(), String.format("Error Code: %d", i), Toast.LENGTH_LONG).show();
-                }
-
-                return false;
+    @Override
+    public boolean onError(MediaPlayer mp, int what, int extras) {
+        if (playPressed) {
+            if (notification != null) {
+                notification.dismiss();
             }
-        });
+            notification = new GFMinimalNotification(mActivity, GFMinimalNotificationStyle.ERROR, "", "There was an error!");
+            notification.show(mActivity);
 
+            mStartStopButton.setBackgroundResource(R.drawable.play_red);
+            doneBuffering = false;
+            playPressed = false;
+        }
+
+        return true;
     }
 
     private void createVisualizer(){
@@ -470,33 +504,6 @@ public class AudioPlayerActivity extends BaseNotificationActivity {
 
                     canvas.drawPath(path, paint);
                 }
-            }
-        }
-    }
-
-    private class CheckInternetTask extends AsyncTask<Void, Void, Boolean>
-    {
-
-        @Override
-        protected Boolean doInBackground(Void... voids)
-        {
-            ConnectivityManager cm =
-                    (ConnectivityManager)getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
-
-            NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
-            boolean isConnected = activeNetwork != null &&
-                    activeNetwork.isConnectedOrConnecting();
-
-            return isConnected;
-        }
-
-        protected void onPostExecute(Boolean result) {
-            if(!result)
-            {
-                Toast.makeText(getContext(), "You have no internet connection!", Toast.LENGTH_LONG).show();
-            } else
-            {
-                player.prepareAsync();
             }
         }
     }

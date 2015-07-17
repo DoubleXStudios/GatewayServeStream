@@ -1,63 +1,56 @@
 package com.example.quinn.m3ustreamtest2;
 
 import android.content.Context;
+import android.media.MediaPlayer;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
-import android.util.Log;
-
-import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.URL;
+import android.provider.MediaStore;
+import android.widget.Toast;
 
 /**
- * Created by andrew on 1/27/2015.
-*/
-
-public class ConnectionTest extends AsyncTask<String,String,String> {
+ * Created by Kyle on 7/16/15.
+ */
+public class ConnectionTest extends AsyncTask<Void, Void, Boolean>
+{
     private Context ctx;
+    private AudioPlayerActivity passedActivity;
+    private  boolean shouldStart;
 
-    public ConnectionTest(Context ctx){
+    public ConnectionTest(Context ctx, AudioPlayerActivity activity, boolean shouldStart)
+    {
         this.ctx = ctx;
+        this.passedActivity = activity;
+        this.shouldStart = shouldStart;
     }
 
-    protected void onPreExecute(){
-        Log.d("constat", "constat on preexecute");
+    @Override
+    protected Boolean doInBackground(Void... voids)
+    {
+        ConnectivityManager cm =
+                (ConnectivityManager)ctx.getSystemService(Context.CONNECTIVITY_SERVICE);
+
+        NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+        boolean isConnected = activeNetwork != null &&
+                activeNetwork.isConnectedOrConnecting();
+
+        return isConnected;
     }
 
-    protected String doInBackground(String... params) {
+    protected void onPostExecute(Boolean result) {
+        if(!result)
+        {
+            Toast.makeText(ctx, "You have no internet connection!", Toast.LENGTH_SHORT).show();
 
-        String state = "";
-        ConnectivityManager CManager =
-                (ConnectivityManager) ctx.getSystemService(ctx.CONNECTIVITY_SERVICE);
-        NetworkInfo NInfo = CManager.getActiveNetworkInfo();
-
-        if (NInfo != null && NInfo.isConnectedOrConnecting()) {
-
-            try {
-                URL url = new URL("clients3.google.com/generate_204");   // Change to "http://google.com" for www  test.
-                HttpURLConnection urlc = (HttpURLConnection) url.openConnection();
-                urlc.setConnectTimeout(10 * 1000);          // 10 s.
-                urlc.connect();
-                if (urlc.getResponseCode() == 204) {        // 200 = "OK" code (http connection is fine).
-                    Log.wtf("Connection", "Success !");
-                    return "true";
-                } else {
-                    return "false";
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
+            passedActivity.mStartStopButton.setBackgroundResource(R.drawable.play_red);
+            passedActivity.doneBuffering = false;
+            passedActivity.playPressed = false;
+        } else
+        {
+            if(shouldStart)
+            {
+                passedActivity.player.prepareAsync();
             }
         }
-        else Log.d("conStat","connection is wtf fix this here");
-
-        return state;
     }
-    protected void onPostExecute(String result){
-        Log.d("conStat","constat says the connection state was " +result);
-    }
-
-
-
-
 }
