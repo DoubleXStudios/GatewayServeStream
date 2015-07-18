@@ -81,6 +81,7 @@ public class AudioPlayerActivity extends BaseNotificationActivity implements Med
 
     private Timer checkInternetTimer;
     private TimerTask checkInternetTask;
+    public boolean internetErrorOccured;
 
     public static GoogleAnalytics analytics;
     public static Tracker tracker;
@@ -287,7 +288,7 @@ public class AudioPlayerActivity extends BaseNotificationActivity implements Med
         nextStationTextView.setText(getString(mStations[(mCurrentIndex + 1) % mStations.length].getResourceID()));
     }
 
-    private void setupPlayer()
+    public void setupPlayer()
     {
         player = new MediaPlayer();
         try
@@ -315,6 +316,7 @@ public class AudioPlayerActivity extends BaseNotificationActivity implements Med
             }
         });
 
+        player.setOnErrorListener(this);
     }
 
     @Override
@@ -326,9 +328,10 @@ public class AudioPlayerActivity extends BaseNotificationActivity implements Med
             notification = new GFMinimalNotification(mActivity, GFMinimalNotificationStyle.ERROR, "", "There was an error!");
             notification.show(mActivity);
 
-            mStartStopButton.setBackgroundResource(R.drawable.play_red);
             doneBuffering = false;
-            playPressed = false;
+
+            setupPlayer();
+            player.prepareAsync();
         }
 
         return true;

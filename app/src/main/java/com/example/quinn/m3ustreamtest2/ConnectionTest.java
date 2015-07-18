@@ -8,6 +8,9 @@ import android.os.AsyncTask;
 import android.provider.MediaStore;
 import android.widget.Toast;
 
+import com.github.gfranks.minimal.notification.GFMinimalNotification;
+import com.github.gfranks.minimal.notification.GFMinimalNotificationStyle;
+
 /**
  * Created by Kyle on 7/16/15.
  */
@@ -42,14 +45,30 @@ public class ConnectionTest extends AsyncTask<Void, Void, Boolean>
         {
             Toast.makeText(ctx, "You have no internet connection!", Toast.LENGTH_SHORT).show();
 
-            passedActivity.mStartStopButton.setBackgroundResource(R.drawable.play_red);
             passedActivity.doneBuffering = false;
-            passedActivity.playPressed = false;
+            passedActivity.internetErrorOccured = true;
+
         } else
         {
             if(shouldStart)
             {
                 passedActivity.player.prepareAsync();
+            } else
+            {
+                if(passedActivity.internetErrorOccured)
+                {
+                    passedActivity.internetErrorOccured = false;
+                    passedActivity.setupPlayer();
+                    passedActivity.player.prepareAsync();
+
+                    if(passedActivity.notification != null)
+                    {
+                        passedActivity.notification.dismiss();
+                    }
+                    passedActivity.notification = new GFMinimalNotification(passedActivity, GFMinimalNotificationStyle.WARNING , "", "Your stream is loading....",
+                            0);
+                    passedActivity.notification.show(passedActivity);
+                }
             }
         }
     }
