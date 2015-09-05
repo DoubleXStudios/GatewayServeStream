@@ -3,11 +3,19 @@ package com.example.quinn.m3ustreamtest2;
 import android.app.ActionBar;
 import android.app.Fragment;
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.ColorFilter;
+import android.graphics.ColorMatrixColorFilter;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
+import android.graphics.drawable.*;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.LightingColorFilter;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
@@ -17,6 +25,7 @@ import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -194,10 +203,13 @@ public class AudioPlayerActivity extends BaseNotificationActivity implements Med
         setContentView(R.layout.main_act_layout);
 
         currentStationBanner = (ImageView)findViewById(R.id.current_station_banner);
-        nextStationTextView = (TextView) findViewById(R.id.next_station_text_view);
-        previousStationTextView = (TextView) findViewById(R.id.prev_station_text_view);
+//        nextStationTextView = (TextView) findViewById(R.id.next_station_text_view);
+//        previousStationTextView = (TextView) findViewById(R.id.prev_station_text_view);
 
         mStartStopButton = (ImageButton) findViewById(R.id.plav_pause_button);
+
+        mStartStopButton.setImageDrawable(playDrawable());
+
         mStartStopButton.setOnClickListener(new View.OnClickListener(){
             @Override
             public void onClick(View view){
@@ -208,7 +220,7 @@ public class AudioPlayerActivity extends BaseNotificationActivity implements Med
                         player.stop();
                     }
 
-                    mStartStopButton.setBackgroundResource(R.drawable.play_red);
+                    mStartStopButton.setImageDrawable(playDrawable());
                     doneBuffering = false;
 
                     if(notification != null)
@@ -219,7 +231,7 @@ public class AudioPlayerActivity extends BaseNotificationActivity implements Med
                     setupPlayer();
                     new ConnectionTest(getApplicationContext(), mActivity, true).execute();
 
-                    mStartStopButton.setBackgroundResource(R.drawable.pause_red);
+                    mStartStopButton.setImageDrawable(pauseDrawable());
 
                     if(notification != null)
                     {
@@ -234,12 +246,14 @@ public class AudioPlayerActivity extends BaseNotificationActivity implements Med
         });
 
         mNextButton = (ImageButton) findViewById(R.id.next_station_button);
+        mNextButton.setImageDrawable(forwardBackwardsDrawable(true));
         mNextButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 mCurrentIndex = (mCurrentIndex+1)% mStations.length;
                 updateTextViews();
-                mStartStopButton.setBackgroundResource(R.drawable.play_red);
+
+                mStartStopButton.setImageDrawable(playDrawable());
 
                 playPressed = false;
                 doneBuffering = false;
@@ -250,17 +264,19 @@ public class AudioPlayerActivity extends BaseNotificationActivity implements Med
                 }
 
                 setupPlayer();
+                updateBannerView();
             }
         });
 
         mPrevButton = (ImageButton) findViewById(R.id.previous_station_button);
+        mPrevButton.setImageDrawable(forwardBackwardsDrawable(false));
         mPrevButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
 
                 mCurrentIndex = ((mCurrentIndex - 1) + mStations.length) % mStations.length;
                 updateTextViews();
-                mStartStopButton.setBackgroundResource(R.drawable.play_red);
+                mStartStopButton.setImageDrawable(playDrawable());
 
                 playPressed = false;
                 doneBuffering = false;
@@ -271,6 +287,7 @@ public class AudioPlayerActivity extends BaseNotificationActivity implements Med
                 }
 
                 setupPlayer();
+                updateBannerView();
             }
         });
 
@@ -282,11 +299,98 @@ public class AudioPlayerActivity extends BaseNotificationActivity implements Med
 
     }
 
-    private void updateTextViews(){
-        previousStationTextView.setText(getString(mStations[((mCurrentIndex-1) + mStations.length)% mStations.length].getResourceID()));
-        currentStationBanner.setImageResource(bannerImages[mCurrentIndex]);
-        nextStationTextView.setText(getString(mStations[(mCurrentIndex + 1) % mStations.length].getResourceID()));
+    private Drawable resize(Drawable image, int size) {
+        int pixels = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 10, getResources().getDisplayMetrics());
+        Bitmap b = ((BitmapDrawable)image).getBitmap();
+        Bitmap bitmapResized = Bitmap.createScaledBitmap(b, pixels*size, pixels*size, false);
+        return new BitmapDrawable(getResources(), bitmapResized);
     }
+
+    private void updateTextViews(){
+//        previousStationTextView.setText(getString(mStations[((mCurrentIndex-1) + mStations.length)% mStations.length].getResourceID()));
+//        currentStationBanner.setImageResource(bannerImages[mCurrentIndex]);
+//        nextStationTextView.setText(getString(mStations[(mCurrentIndex + 1) % mStations.length].getResourceID()));
+    }
+
+    private void updateBannerView()
+    {
+        currentStationBanner.setImageDrawable(
+                getContext().getResources().getDrawable(this.bannerImages[this.mCurrentIndex]));
+    }
+
+
+    private Drawable playDrawable() {
+        Drawable playIcon = getResources().getDrawable(R.drawable.play);
+        playIcon = resize(playIcon, 8);
+        int iColor = Color.parseColor("#B62455");
+
+        int red = (iColor & 0xFF0000) / 0xFFFF;
+        int green = (iColor & 0xFF00) / 0xFF;
+        int blue = iColor & 0xFF;
+
+        float[] matrix = {0, 0, 0, 0, red
+                , 0, 0, 0, 0, green
+                , 0, 0, 0, 0, blue
+                , 0, 0, 0, 1, 0};
+
+        ColorFilter colorFilter = new ColorMatrixColorFilter(matrix);
+
+        playIcon.setColorFilter(colorFilter);
+
+        return playIcon;
+    }
+
+    private Drawable pauseDrawable() {
+        Drawable playIcon = getResources().getDrawable(R.drawable.pause);
+        playIcon = resize(playIcon, 8);
+        int iColor = Color.parseColor("#B62455");
+
+        int red = (iColor & 0xFF0000) / 0xFFFF;
+        int green = (iColor & 0xFF00) / 0xFF;
+        int blue = iColor & 0xFF;
+
+        float[] matrix = {0, 0, 0, 0, red
+                , 0, 0, 0, 0, green
+                , 0, 0, 0, 0, blue
+                , 0, 0, 0, 1, 0};
+
+        ColorFilter colorFilter = new ColorMatrixColorFilter(matrix);
+
+        playIcon.setColorFilter(colorFilter);
+
+        return playIcon;
+    }
+
+    private Drawable forwardBackwardsDrawable(Boolean forwards)
+    {
+        Drawable icon;
+        if(forwards)
+        {
+            icon = getResources().getDrawable(R.drawable.forward);
+        } else
+        {
+            icon = getResources().getDrawable(R.drawable.backward);
+        }
+
+        icon = resize(icon, 3);
+        int iColor = Color.parseColor("#000000");
+
+        int red = (iColor & 0xFF0000) / 0xFFFF;
+        int green = (iColor & 0xFF00) / 0xFF;
+        int blue = iColor & 0xFF;
+
+        float[] matrix = {0, 0, 0, 0, red
+                , 0, 0, 0, 0, green
+                , 0, 0, 0, 0, blue
+                , 0, 0, 0, 1, 0};
+
+        ColorFilter colorFilter = new ColorMatrixColorFilter(matrix);
+
+        icon.setColorFilter(colorFilter);
+
+        return icon;
+    }
+
 
     public void setupPlayer()
     {
@@ -462,7 +566,7 @@ public class AudioPlayerActivity extends BaseNotificationActivity implements Med
 
                 Paint paint = new Paint();
 
-                paint.setColor(Color.parseColor("#902E41"));
+                paint.setColor(Color.parseColor("#B62455"));
 
                 paint.setStrokeWidth(6);
 
