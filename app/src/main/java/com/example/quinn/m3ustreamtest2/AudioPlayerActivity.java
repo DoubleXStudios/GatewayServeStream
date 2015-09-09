@@ -3,6 +3,7 @@ package com.example.quinn.m3ustreamtest2;
 import android.app.ActionBar;
 import android.app.Fragment;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.ColorFilter;
 import android.graphics.ColorMatrixColorFilter;
@@ -81,6 +82,7 @@ public class AudioPlayerActivity extends BaseNotificationActivity implements Med
             new StationSource("Sports", R.string.sports_station_string, "http://sportsweb.gtc.edu:8000/Sportsweb")}; //Sports
 
     private int[] bannerImages = {R.drawable.classical, R.drawable.jazz, R.drawable.reading, R.drawable.sports};
+    private String[] channelNames = {"Classical", "Jazz", "Reading Service", "Sports Radio"};
     private int mCurrentIndex;
 
     public boolean playPressed;
@@ -120,6 +122,15 @@ public class AudioPlayerActivity extends BaseNotificationActivity implements Med
         {
             timer.scheduleAtFixedRate(task, 0, 10);
         }
+    }
+
+    @Override
+    public void onPause()
+    {
+        super.onPause();
+        SharedPreferences.Editor editor = getPreferences(MODE_PRIVATE).edit();
+        editor.putInt("Last Channel", mCurrentIndex);
+        editor.commit();
     }
 
     public void setupGoogleAnalytics()
@@ -174,6 +185,17 @@ public class AudioPlayerActivity extends BaseNotificationActivity implements Med
         mRecorder.start();
     }
 
+    private void setLastChannelIndex()
+    {
+        int lastIndex = getPreferences(MODE_PRIVATE).getInt("Last Channel", -1);
+
+        if (lastIndex == -1)
+        {
+            mCurrentIndex = 0;
+        } else {
+            mCurrentIndex = lastIndex;
+        }
+    }
 
     /** Called when the activity is first created. */
     @Override
@@ -192,12 +214,12 @@ public class AudioPlayerActivity extends BaseNotificationActivity implements Med
         setupRecorder();
         createVisualizer();
 
-        mCurrentIndex = 0;
         mContext = this;
         mActivity = this;
         playPressed = false;
         doneBuffering = false;
 
+        setLastChannelIndex();
         setupPlayer();
 
         setContentView(R.layout.main_act_layout);
@@ -264,7 +286,7 @@ public class AudioPlayerActivity extends BaseNotificationActivity implements Med
                 }
 
                 setupPlayer();
-                updateBannerView();
+                updateViews();
             }
         });
 
@@ -287,7 +309,7 @@ public class AudioPlayerActivity extends BaseNotificationActivity implements Med
                 }
 
                 setupPlayer();
-                updateBannerView();
+                updateViews();
             }
         });
 
@@ -318,6 +340,19 @@ public class AudioPlayerActivity extends BaseNotificationActivity implements Med
                 getContext().getResources().getDrawable(this.bannerImages[this.mCurrentIndex]));
     }
 
+    private void updateNavTitle()
+    {
+        ActionBar actionBar;
+
+        actionBar = getActionBar();
+        actionBar.setTitle(this.channelNames[mCurrentIndex]);
+    }
+
+    private void updateViews()
+    {
+        updateBannerView();
+        updateNavTitle();
+    }
 
     private Drawable playDrawable() {
         Drawable playIcon = getResources().getDrawable(R.drawable.play);
@@ -480,6 +515,8 @@ public class AudioPlayerActivity extends BaseNotificationActivity implements Med
         @Override
         public View onCreateView(LayoutInflater inflater, ViewGroup container,
                                  Bundle savedInstanceState) {
+            updateViews();
+
             halfHeight = container.getHeight() / 2;
             height = container.getHeight();
             width = container.getWidth();
