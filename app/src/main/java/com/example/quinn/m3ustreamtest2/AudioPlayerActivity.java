@@ -5,6 +5,7 @@ import android.app.Fragment;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.ColorFilter;
 import android.graphics.ColorMatrixColorFilter;
 import android.graphics.PorterDuff;
@@ -25,6 +26,8 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
+import android.provider.MediaStore;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
@@ -43,11 +46,23 @@ import com.github.gfranks.minimal.notification.activity.BaseNotificationActivity
 import com.google.android.gms.analytics.GoogleAnalytics;
 import com.google.android.gms.analytics.Tracker;
 
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.util.EntityUtils;
+
 import java.io.IOException;
+import java.io.InputStream;
+import java.lang.reflect.Array;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * http://199.255.3.11:88/broadwave.m3u?src=2&rate=1    Community Radio HD3
@@ -59,6 +74,8 @@ import java.util.TimerTask;
 public class AudioPlayerActivity extends BaseNotificationActivity implements MediaPlayer.OnErrorListener {
     public static Context mContext;
     public static AudioPlayerActivity mActivity;
+    public String apiKey;
+    private ArrayList<Bitmap> bannersAds;
 
     public MediaPlayer player;
     public ImageButton mStartStopButton;
@@ -70,6 +87,8 @@ public class AudioPlayerActivity extends BaseNotificationActivity implements Med
     private TextView previousStationTextView;
     public GFMinimalNotification notification;
     public boolean doneBuffering;
+    private ImageView bannerView;
+    private int bannerIndex = 0;
 
     private Visualizer audioOutput = null;
     public float intensity = 0;
@@ -91,6 +110,8 @@ public class AudioPlayerActivity extends BaseNotificationActivity implements Med
     private TimerTask task;
 
     private Timer checkInternetTimer;
+    private Timer bannerTimer;
+    private TimerTask bannerTask;
     private TimerTask checkInternetTask;
     public boolean internetErrorOccured;
 
@@ -167,6 +188,33 @@ public class AudioPlayerActivity extends BaseNotificationActivity implements Med
         checkInternetTimer.scheduleAtFixedRate(checkInternetTask, 0, 5000);
     }
 
+    public void setupBannerTimer()
+    {
+        bannerTimer = new Timer();
+
+        bannerTask = new TimerTask() {
+
+            synchronized public void run() {
+
+                mActivity.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        if(bannersAds.size() > 1)
+                        {
+                            bannerIndex++;
+                            if(bannerIndex == bannersAds.size())
+                            {
+                                bannerIndex = 0;
+                            }
+                            bannerView.setImageBitmap(bannersAds.get(bannerIndex));
+                        }
+                    }
+                });
+            }
+        };
+
+        bannerTimer.scheduleAtFixedRate(bannerTask, 0, 5000);
+    }
 
     public void setupRecorder() // Recorder used by visualizer
     {
@@ -203,6 +251,9 @@ public class AudioPlayerActivity extends BaseNotificationActivity implements Med
         super.onCreate(savedInstanceState);
 
         setupGoogleAnalytics();
+        this.bannersAds = new ArrayList<>();
+
+        this.obtainApiKey(this);
 
         // Sets up the navigation bar
         ActionBar actionBar;
@@ -225,6 +276,7 @@ public class AudioPlayerActivity extends BaseNotificationActivity implements Med
         setContentView(R.layout.main_act_layout);
 
         currentStationBanner = (ImageView)findViewById(R.id.current_station_banner);
+        bannerView = (ImageView)findViewById(R.id.bannerView);
 //        nextStationTextView = (TextView) findViewById(R.id.next_station_text_view);
 //        previousStationTextView = (TextView) findViewById(R.id.prev_station_text_view);
 
@@ -232,21 +284,19 @@ public class AudioPlayerActivity extends BaseNotificationActivity implements Med
 
         mStartStopButton.setImageDrawable(playDrawable());
 
-        mStartStopButton.setOnClickListener(new View.OnClickListener(){
+        mStartStopButton.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View view){
-                if(playPressed) {
+            public void onClick(View view) {
+                if (playPressed) {
 
-                    if(player.isPlaying())
-                    {
+                    if (player.isPlaying()) {
                         player.stop();
                     }
 
                     mStartStopButton.setImageDrawable(playDrawable());
                     doneBuffering = false;
 
-                    if(notification != null)
-                    {
+                    if (notification != null) {
                         notification.dismiss();
                     }
                 } else {
@@ -255,15 +305,14 @@ public class AudioPlayerActivity extends BaseNotificationActivity implements Med
 
                     mStartStopButton.setImageDrawable(pauseDrawable());
 
-                    if(notification != null)
-                    {
+                    if (notification != null) {
                         notification.dismiss();
                     }
-                    notification = new GFMinimalNotification(mActivity, GFMinimalNotificationStyle.WARNING , "", "Your stream is loading....",
+                    notification = new GFMinimalNotification(mActivity, GFMinimalNotificationStyle.WARNING, "", "Your stream is loading....",
                             0);
                     notification.show(mActivity);
                 }
-                playPressed = ! playPressed;
+                playPressed = !playPressed;
             }
         });
 
@@ -272,7 +321,7 @@ public class AudioPlayerActivity extends BaseNotificationActivity implements Med
         mNextButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                mCurrentIndex = (mCurrentIndex+1)% mStations.length;
+                mCurrentIndex = (mCurrentIndex + 1) % mStations.length;
                 updateTextViews();
 
                 mStartStopButton.setImageDrawable(playDrawable());
@@ -280,8 +329,7 @@ public class AudioPlayerActivity extends BaseNotificationActivity implements Med
                 playPressed = false;
                 doneBuffering = false;
 
-                if(player.isPlaying())
-                {
+                if (player.isPlaying()) {
                     player.stop();
                 }
 
@@ -303,8 +351,7 @@ public class AudioPlayerActivity extends BaseNotificationActivity implements Med
                 playPressed = false;
                 doneBuffering = false;
 
-                if(player.isPlaying())
-                {
+                if (player.isPlaying()) {
                     player.stop();
                 }
 
@@ -318,7 +365,7 @@ public class AudioPlayerActivity extends BaseNotificationActivity implements Med
                 .commit();
 
         setupInternetCheckTimer();
-
+        setupBannerTimer();
     }
 
     private Drawable resize(Drawable image, int size) {
@@ -534,27 +581,21 @@ public class AudioPlayerActivity extends BaseNotificationActivity implements Med
                         @Override
                         public void run() {
                             //int volume_level=
-                            double level = (float)(20 * Math.log10(mRecorder.getMaxAmplitude()/700.0)) ;
+                            double level = (float) (20 * Math.log10(mRecorder.getMaxAmplitude() / 700.0));
 
-                            if(doneBuffering)
-                            {
-                                if(intensity == 0.103975)
-                                {
+                            if (doneBuffering) {
+                                if (intensity == 0.103975) {
 
                                 }
 
-                                if(intensity < 0.001)
-                                {
+                                if (intensity < 0.001) {
                                     line.updateWaveWithLevel(0.1);
-                                } else if(intensity < 0.5)
-                                {
+                                } else if (intensity < 0.5) {
                                     line.updateWaveWithLevel(0.5);
-                                } else
-                                {
+                                } else {
                                     line.updateWaveWithLevel(0.8);
                                 }
-                            } else
-                            {
+                            } else {
                                 line.updateWaveWithLevel(0.01);
                             }
                         }
@@ -652,4 +693,166 @@ public class AudioPlayerActivity extends BaseNotificationActivity implements Med
         }
     }
 
+    // Networking
+
+    public void obtainApiKey(AudioPlayerActivity ctx)
+    {
+        new GetKeyAsyncTask(ctx).execute();
+    }
+
+    class GetKeyAsyncTask extends AsyncTask<Void, Void, String> {
+
+        AudioPlayerActivity master;
+
+        public GetKeyAsyncTask(AudioPlayerActivity activity)
+        {
+            master = activity;
+        }
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+
+        }
+
+        @Override
+        protected String doInBackground(Void... urls) {
+            try {
+
+                //------------------>>
+                HttpGet httppost = new HttpGet("http://appfactoryuwp.com/imageserver/api/yum/key/104");
+                httppost.addHeader("X-API-KEY","b5d4af3cfb232c01311b183d42d05648");
+                httppost.addHeader("X-SHHH-ITS-A-SECRET","73509e2f8981fd1247f400de53c60b0f8053fbb5");
+                HttpClient httpclient = new DefaultHttpClient();
+                HttpResponse response = httpclient.execute(httppost);
+
+                // StatusLine stat = response.getStatusLine();
+                int status = response.getStatusLine().getStatusCode();
+
+                if (status == 200) {
+                    HttpEntity entity = response.getEntity();
+                    String data = EntityUtils.toString(entity);
+                    String apiKey = data.substring(data.indexOf("<item>") + 6, data.indexOf("</item>"));
+
+                    return apiKey;
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return "";
+        }
+
+        protected void onPostExecute(String result) {
+            master.apiKey = result;
+            obtainImages(master.apiKey, master);
+        }
+    }
+
+    public void obtainImages(String apiKey, AudioPlayerActivity activity)
+    {
+        Log.d("Key", apiKey);
+        new GetImagesAsyncTask(apiKey, activity).execute();
+    }
+
+    class GetImagesAsyncTask extends AsyncTask<String, Void, String> {
+
+        String apiKey;
+        AudioPlayerActivity master;
+
+        public GetImagesAsyncTask(String key, AudioPlayerActivity activity)
+        {
+            this.apiKey = key;
+            this.master = activity;
+        }
+
+        @Override
+        protected String doInBackground(String... urls) {
+            try {
+                //------------------>>
+                HttpGet httppost = new HttpGet("http://appfactoryuwp.com/imageserver/api/apt");
+                httppost.addHeader("X-API-KEY",this.apiKey);
+                HttpClient httpclient = new DefaultHttpClient();
+                HttpResponse response = httpclient.execute(httppost);
+
+                // StatusLine stat = response.getStatusLine();
+                int status = response.getStatusLine().getStatusCode();
+
+                if (status == 200) {
+                    HttpEntity entity = response.getEntity();
+                    String data = EntityUtils.toString(entity);
+                    ArrayList<String> filenames = new ArrayList<>();
+
+                    Pattern p = Pattern.compile("imagefilename");
+                    Matcher m = p.matcher(data);
+                    int count = 0;
+                    while (m.find()){
+                        count +=1;
+                    }
+
+                    for(int i=0; i<count/2;i++)
+                    {
+                        String split = data.split("<"+"imagefilename"+">")[1+i].split("</"+"imagefilename"+">")[0];
+                        filenames.add(split);
+
+                        master.getImage(split, master);
+                    }
+
+                    Log.d("Data", filenames.toString());
+
+                    return "";
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return null;
+        }
+
+    }
+
+    public void getImage(String filename, AudioPlayerActivity activity)
+    {
+        new GetImageAsyncTask(filename, activity).execute();
+    }
+
+    class GetImageAsyncTask extends AsyncTask<String, Void, String> {
+
+        AudioPlayerActivity master;
+        String imageUrl;
+
+        public GetImageAsyncTask(String imageUrl, AudioPlayerActivity activity) {
+            this.master = activity;
+            this.imageUrl = imageUrl;
+        }
+
+        @Override
+        protected String doInBackground(String... urls) {
+            try {
+                //------------------>>
+                HttpGet httppost = new HttpGet(imageUrl);
+                HttpClient httpclient = new DefaultHttpClient();
+                HttpResponse response = httpclient.execute(httppost);
+
+                // StatusLine stat = response.getStatusLine();
+                int status = response.getStatusLine().getStatusCode();
+
+                if (status == 200) {
+                    HttpEntity entity = response.getEntity();
+                    InputStream stream = entity.getContent();
+                    final Bitmap bitmap = BitmapFactory.decodeStream(stream);
+
+                    master.bannersAds.add(bitmap);
+                    Log.d("Data", master.bannersAds.toString());
+
+                    return "";
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return null;
+        }
+
+    }
 }
