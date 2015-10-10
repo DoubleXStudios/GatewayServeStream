@@ -75,7 +75,7 @@ public class AudioPlayerActivity extends BaseNotificationActivity implements Med
     public static Context mContext;
     public static AudioPlayerActivity mActivity;
     public String apiKey;
-    private ArrayList<Bitmap> bannersAds;
+    public ArrayList<Bitmap> bannersAds;
 
     public MediaPlayer player;
     public ImageButton mStartStopButton;
@@ -83,8 +83,6 @@ public class AudioPlayerActivity extends BaseNotificationActivity implements Med
     private ImageButton mNextButton;
 
     private ImageView currentStationBanner;
-    private TextView nextStationTextView;
-    private TextView previousStationTextView;
     public GFMinimalNotification notification;
     public boolean doneBuffering;
     private ImageView bannerView;
@@ -207,6 +205,9 @@ public class AudioPlayerActivity extends BaseNotificationActivity implements Med
                                 bannerIndex = 0;
                             }
                             bannerView.setImageBitmap(bannersAds.get(bannerIndex));
+                        } else
+                        {
+                            new Networking.GetBannerAds(mActivity).execute();
                         }
                     }
                 });
@@ -253,7 +254,7 @@ public class AudioPlayerActivity extends BaseNotificationActivity implements Med
         setupGoogleAnalytics();
         this.bannersAds = new ArrayList<>();
 
-        this.obtainApiKey(this);
+        new Networking.GetBannerAds(this).execute();
 
         // Sets up the navigation bar
         ActionBar actionBar;
@@ -277,8 +278,6 @@ public class AudioPlayerActivity extends BaseNotificationActivity implements Med
 
         currentStationBanner = (ImageView)findViewById(R.id.current_station_banner);
         bannerView = (ImageView)findViewById(R.id.bannerView);
-//        nextStationTextView = (TextView) findViewById(R.id.next_station_text_view);
-//        previousStationTextView = (TextView) findViewById(R.id.prev_station_text_view);
 
         mStartStopButton = (ImageButton) findViewById(R.id.plav_pause_button);
 
@@ -322,7 +321,6 @@ public class AudioPlayerActivity extends BaseNotificationActivity implements Med
             @Override
             public void onClick(View v) {
                 mCurrentIndex = (mCurrentIndex + 1) % mStations.length;
-                updateTextViews();
 
                 mStartStopButton.setImageDrawable(playDrawable());
 
@@ -345,7 +343,6 @@ public class AudioPlayerActivity extends BaseNotificationActivity implements Med
             public void onClick(View v) {
 
                 mCurrentIndex = ((mCurrentIndex - 1) + mStations.length) % mStations.length;
-                updateTextViews();
                 mStartStopButton.setImageDrawable(playDrawable());
 
                 playPressed = false;
@@ -375,13 +372,7 @@ public class AudioPlayerActivity extends BaseNotificationActivity implements Med
         return new BitmapDrawable(getResources(), bitmapResized);
     }
 
-    private void updateTextViews(){
-//        previousStationTextView.setText(getString(mStations[((mCurrentIndex-1) + mStations.length)% mStations.length].getResourceID()));
-//        currentStationBanner.setImageResource(bannerImages[mCurrentIndex]);
-//        nextStationTextView.setText(getString(mStations[(mCurrentIndex + 1) % mStations.length].getResourceID()));
-    }
-
-    private void updateBannerView()
+    private void updateStationView()
     {
         currentStationBanner.setImageDrawable(
                 getContext().getResources().getDrawable(this.bannerImages[this.mCurrentIndex]));
@@ -397,7 +388,7 @@ public class AudioPlayerActivity extends BaseNotificationActivity implements Med
 
     private void updateViews()
     {
-        updateBannerView();
+        updateStationView();
         updateNavTitle();
     }
 
@@ -530,15 +521,13 @@ public class AudioPlayerActivity extends BaseNotificationActivity implements Med
             @Override
             public void onWaveFormDataCapture(Visualizer visualizer, byte[] waveform, int samplingRate) {
                 intensity = ((float) waveform[0] + 128f) / 256;
-                Log.d("vis", String.valueOf(intensity));
             }
 
             @Override
             public void onFftDataCapture(Visualizer visualizer, byte[] fft, int samplingRate) {
 
             }
-        },rate , true, false); // waveform not freq data
-        Log.d("rate", String.valueOf(Visualizer.getMaxCaptureRate()));
+        }, rate, true, false); // waveform not freq data
         audioOutput.setEnabled(true);
     }
 
@@ -691,168 +680,5 @@ public class AudioPlayerActivity extends BaseNotificationActivity implements Med
                 }
             }
         }
-    }
-
-    // Networking
-
-    public void obtainApiKey(AudioPlayerActivity ctx)
-    {
-        new GetKeyAsyncTask(ctx).execute();
-    }
-
-    class GetKeyAsyncTask extends AsyncTask<Void, Void, String> {
-
-        AudioPlayerActivity master;
-
-        public GetKeyAsyncTask(AudioPlayerActivity activity)
-        {
-            master = activity;
-        }
-
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-
-        }
-
-        @Override
-        protected String doInBackground(Void... urls) {
-            try {
-
-                //------------------>>
-                HttpGet httppost = new HttpGet("http://appfactoryuwp.com/imageserver/api/yum/key/104");
-                httppost.addHeader("X-API-KEY","b5d4af3cfb232c01311b183d42d05648");
-                httppost.addHeader("X-SHHH-ITS-A-SECRET","73509e2f8981fd1247f400de53c60b0f8053fbb5");
-                HttpClient httpclient = new DefaultHttpClient();
-                HttpResponse response = httpclient.execute(httppost);
-
-                // StatusLine stat = response.getStatusLine();
-                int status = response.getStatusLine().getStatusCode();
-
-                if (status == 200) {
-                    HttpEntity entity = response.getEntity();
-                    String data = EntityUtils.toString(entity);
-                    String apiKey = data.substring(data.indexOf("<item>") + 6, data.indexOf("</item>"));
-
-                    return apiKey;
-                }
-
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            return "";
-        }
-
-        protected void onPostExecute(String result) {
-            master.apiKey = result;
-            obtainImages(master.apiKey, master);
-        }
-    }
-
-    public void obtainImages(String apiKey, AudioPlayerActivity activity)
-    {
-        Log.d("Key", apiKey);
-        new GetImagesAsyncTask(apiKey, activity).execute();
-    }
-
-    class GetImagesAsyncTask extends AsyncTask<String, Void, String> {
-
-        String apiKey;
-        AudioPlayerActivity master;
-
-        public GetImagesAsyncTask(String key, AudioPlayerActivity activity)
-        {
-            this.apiKey = key;
-            this.master = activity;
-        }
-
-        @Override
-        protected String doInBackground(String... urls) {
-            try {
-                //------------------>>
-                HttpGet httppost = new HttpGet("http://appfactoryuwp.com/imageserver/api/apt");
-                httppost.addHeader("X-API-KEY",this.apiKey);
-                HttpClient httpclient = new DefaultHttpClient();
-                HttpResponse response = httpclient.execute(httppost);
-
-                // StatusLine stat = response.getStatusLine();
-                int status = response.getStatusLine().getStatusCode();
-
-                if (status == 200) {
-                    HttpEntity entity = response.getEntity();
-                    String data = EntityUtils.toString(entity);
-                    ArrayList<String> filenames = new ArrayList<>();
-
-                    Pattern p = Pattern.compile("imagefilename");
-                    Matcher m = p.matcher(data);
-                    int count = 0;
-                    while (m.find()){
-                        count +=1;
-                    }
-
-                    for(int i=0; i<count/2;i++)
-                    {
-                        String split = data.split("<"+"imagefilename"+">")[1+i].split("</"+"imagefilename"+">")[0];
-                        filenames.add(split);
-
-                        master.getImage(split, master);
-                    }
-
-                    Log.d("Data", filenames.toString());
-
-                    return "";
-                }
-
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            return null;
-        }
-
-    }
-
-    public void getImage(String filename, AudioPlayerActivity activity)
-    {
-        new GetImageAsyncTask(filename, activity).execute();
-    }
-
-    class GetImageAsyncTask extends AsyncTask<String, Void, String> {
-
-        AudioPlayerActivity master;
-        String imageUrl;
-
-        public GetImageAsyncTask(String imageUrl, AudioPlayerActivity activity) {
-            this.master = activity;
-            this.imageUrl = imageUrl;
-        }
-
-        @Override
-        protected String doInBackground(String... urls) {
-            try {
-                //------------------>>
-                HttpGet httppost = new HttpGet(imageUrl);
-                HttpClient httpclient = new DefaultHttpClient();
-                HttpResponse response = httpclient.execute(httppost);
-
-                // StatusLine stat = response.getStatusLine();
-                int status = response.getStatusLine().getStatusCode();
-
-                if (status == 200) {
-                    HttpEntity entity = response.getEntity();
-                    InputStream stream = entity.getContent();
-                    final Bitmap bitmap = BitmapFactory.decodeStream(stream);
-
-                    master.bannersAds.add(bitmap);
-                    Log.d("Data", master.bannersAds.toString());
-
-                    return "";
-                }
-
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            return null;
-        }
-
     }
 }

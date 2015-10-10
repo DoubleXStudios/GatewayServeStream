@@ -26,15 +26,6 @@
         >
     </FrameLayout>
 
-    <!--<ImageView-->
-        <!--android:layout_width="320dp"-->
-        <!--android:layout_height="50dp"-->
-        <!--android:id="@+id/ad_image_view"-->
-        <!--android:background="@drawable/banner1"-->
-        <!--android:layout_alignParentBottom="true"-->
-        <!--android:layout_centerHorizontal="true"-->
-        <!--/>-->
-
     <LinearLayout
         android:orientation="horizontal"
         android:layout_width="wrap_content"
@@ -53,16 +44,6 @@
             android:gravity="center"
             >
 
-            <!--<TextView-->
-                <!--android:layout_width="wrap_content"-->
-                <!--android:layout_height="wrap_content"-->
-                <!--android:text="@string/sports_station_string"-->
-                <!--android:id="@+id/prev_station_text_view"-->
-                <!--android:textSize="18dp"-->
-                <!--android:textColor="#000000"-->
-                <!--android:textStyle="bold"-->
-                <!--/>-->
-
             <ImageButton
                 android:layout_width="30dp"
                 android:layout_height="30dp"
@@ -80,16 +61,6 @@
             android:gravity="center"
             android:layout_weight="0.38">
 
-            <!--<TextView-->
-                <!--android:layout_width="wrap_content"-->
-                <!--android:layout_height="wrap_content"-->
-                <!--android:text="@string/blank_place_holder"-->
-                <!--android:id="@+id/warning_text_view"-->
-                <!--android:layout_gravity="center_horizontal"-->
-                <!--android:textColor="#000000"-->
-                <!--android:textStyle="bold"-->
-                <!--/>-->
-
             <ImageButton
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -106,16 +77,6 @@
             android:layout_height="match_parent"
             android:gravity="center">
 
-            <!--<TextView-->
-                <!--android:layout_width="wrap_content"-->
-                <!--android:layout_height="wrap_content"-->
-                <!--android:text="@string/jazz_station_string"-->
-                <!--android:id="@+id/next_station_text_view"-->
-                <!--android:textSize="18dp"-->
-                <!--android:textColor="#000000"-->
-                <!--android:textStyle="bold"-->
-                <!--/>-->
-
             <ImageButton
                 android:layout_width="30dp"
                 android:layout_height="30dp"
@@ -131,6 +92,7 @@
         android:id="@+id/bannerView"
         android:layout_centerHorizontal="true"
         android:layout_alignParentBottom="true"
+        android:background="@drawable/banner_support"
         />
 
 </RelativeLayout>
