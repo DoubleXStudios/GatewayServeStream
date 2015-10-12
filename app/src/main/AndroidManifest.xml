@@ -15,7 +15,7 @@
         android:label= "@string/application_name"
         >
         <activity
-            android:name=".AudioPlayerActivity"
+            android:name="com.appfactory.quinn.m3ustreamtest2.AudioPlayerActivity"
             android:screenOrientation="portrait"
             android:label="@string/application_name" >
             <intent-filter>
