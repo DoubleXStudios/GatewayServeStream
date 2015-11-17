@@ -66,7 +66,7 @@ public class AudioPlayerActivity extends BaseNotificationActivity implements Med
     private StationSource []  mStations = {new StationSource("Public", R.string.public_radio_string, "http://media.gtc.edu:8000/stream\n"), //Public Radio
             new StationSource("Jazz",R.string.jazz_station_string, "http://199.255.3.11:88/broadwave.mp3?src=1&rate=1&ref=http%3A%2F%2Fwww.wgtd.org%2Fhd2.asp"),//Jazz
             new StationSource("Reading",R.string.reading_service_string, "http://199.255.3.11:88/broadwave.mp3?src=4&rate=1&ref=http%3A%2F%2Fwww.wgtd.org%2Freading.asp" ), //Reading Service
-            new StationSource("Sports", R.string.sports_station_string, "http://sportsweb.gtc.edu:8000/Sportsweb")}; //Sports
+            new StationSource("Sports", R.string.sports_station_string, "http://sportsweb.gtc.edu:8000/stream")}; //Sports
 
     private int[] bannerImages = {R.drawable.classical, R.drawable.jazz, R.drawable.reading, R.drawable.sports};
     private String[] channelNames = {"Classical", "Jazz", "Reading Service", "Sports Radio"};
